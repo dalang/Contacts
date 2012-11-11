@@ -1,4 +1,4 @@
 Contacts
 ========
 
-an flex mobile application of Contacts
+a flex mobile application of Contacts

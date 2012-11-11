@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" title="HomeView" creationComplete="init()"
+		viewDeactivate="savePosition()">
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.collections.Sort;
+			import mx.core.FlexGlobals;
+			import mx.events.FlexEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import spark.collections.SortField;
+			
+			protected function init():void
+			{
+				if (FlexGlobals.topLevelApplication.mydata == null) {
+					srv.send();
+				}
+				else {
+					list.dataProvider = FlexGlobals.topLevelApplication.mydata;
+				}
+				restorePosition();
+			}
+			
+			protected function savePosition():void
+			{
+				FlexGlobals.topLevelApplication.query = key.text;
+				FlexGlobals.topLevelApplication.position = list.dataGroup.verticalScrollPosition;				
+			}
+			
+			protected function restorePosition():void
+			{
+				key.text = FlexGlobals.topLevelApplication.query;
+				list.dataGroup.verticalScrollPosition = FlexGlobals.topLevelApplication.position;				
+			}
+			
+			private function myResult(event:ResultEvent):ArrayCollection{
+				if (FlexGlobals.topLevelApplication.mydata == null) {
+					FlexGlobals.topLevelApplication.mydata = srv.lastResult.list.employee;
+				}
+				
+				var data:ArrayCollection = srv.lastResult.list.employee;
+				var sort:Sort =new Sort();  
+				sort.fields=[new SortField("abb")];  
+				data.sort=sort;  
+				data.refresh();			
+				return data;
+			}
+			
+			private function findByName(index:String):ArrayCollection{
+				var data:ArrayCollection;
+				
+				if (FlexGlobals.topLevelApplication.mydata == null) {
+					data = srv.lastResult.list.employee;
+				}
+				else {
+					data = FlexGlobals.topLevelApplication.mydata;
+				}
+				
+				data.filterFunction = function(item:Object):Boolean {
+					if (item.cellPhone==null)
+						return (item.name.toLowerCase().indexOf(index.toLowerCase())>-1);
+					else
+					{
+						var str:String = '' + item.cellPhone;
+						return (item.name.toLowerCase().indexOf(index.toLowerCase())>-1)||(str.indexOf(index)>-1);
+					}
+				};
+				data.refresh();
+				
+				var sort:Sort =new Sort();  
+				sort.fields=[new SortField("abb")];  
+				data.sort=sort;  
+				data.refresh();
+				list.dataProvider = data;
+				return data;
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<s:HTTPService id="srv" url="assets/employees.xml" 
+					   result="data = myResult(event);"/>
+	</fx:Declarations>
+	<s:viewMenuItems>
+		<s:ViewMenuItem label="About" click="(new AboutMsg()).open(this, false);"/>
+		<s:ViewMenuItem label="Mail to author" click="navigateToURL(new URLRequest('mailto:dalang1987@gmail.com'));"/>
+		<s:ViewMenuItem label="Fresh" click="key.text = ''; findByName('')"/>
+		<s:ViewMenuItem label="Exit" click="NativeApplication.nativeApplication.exit();"/>
+	</s:viewMenuItems>
+	
+	<s:navigationContent/>
+	
+	<s:titleContent>
+		<s:TextInput id="key" width="100%" change="data=findByName(key.text)"/>
+	</s:titleContent>
+	
+	<s:actionContent>
+		<s:Button icon="@Embed('assets/search.png')" 
+				  click="data=findByName(key.text)"/>
+	</s:actionContent>
+	
+	<s:List id="list" top="0" bottom="0" left="0" right="0"
+			dataProvider="{data}"
+			change="navigator.pushView(EmployeeDetails, list.selectedItem)">
+		<s:itemRenderer>
+			<fx:Component>
+				<s:IconItemRenderer 
+					label="{data.name + '          '.substr(0, 10 - data.name.length)}{'\t\t'}{data.cellPhone? data.cellPhone: ''}"
+					messageField="title"/>
+			</fx:Component>
+		</s:itemRenderer>
+	</s:List>
+</s:View>
+

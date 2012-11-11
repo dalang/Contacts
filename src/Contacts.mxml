@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ViewNavigatorApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+							xmlns:s="library://ns.adobe.com/flex/spark" firstView="views.ContactsHomeView" applicationDPI="160">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		<fx:Component className="AboutMsg">
+			<s:SkinnablePopUpContainer x="{(this.parentDocument.width - this.width) / 2}" y="100">
+				<s:HGroup horizontalAlign="center"  width="100%" >					
+					<s:TitleWindow title="Thanks for using V1.2" close="close()">
+						<s:VGroup horizontalAlign="center" paddingTop="8" paddingBottom="8" paddingLeft="8" paddingRight="8" gap="5" width="100%">
+							<s:Label text="This app is developed by Dalang.&#13;You can mail to him via menu"/>
+							<s:Button label="OK" click="close()"/>
+						</s:VGroup>
+					</s:TitleWindow>
+				</s:HGroup>
+			</s:SkinnablePopUpContainer>
+		</fx:Component>
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			
+			public var position:int = 0;
+			public var mydata:ArrayCollection;
+			public var query:String = '';
+		]]>
+	</fx:Script>
+</s:ViewNavigatorApplication>

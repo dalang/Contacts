@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" 
+		title="{data.name}" creationComplete="init();">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+<fx:Script>
+	<![CDATA[
+		import components.MyPopupComponent;
+		
+		import flash.desktop.Clipboard;
+		import flash.desktop.ClipboardFormats;
+		
+		import mx.collections.ArrayCollection;
+		import mx.core.FlexGlobals;
+		import mx.managers.PopUpManager;
+		
+		import spark.components.SkinnablePopUpContainer;
+		import spark.components.supportClasses.ItemRenderer;
+		import spark.events.IndexChangeEvent;
+		import spark.events.PopUpEvent;
+		import spark.events.ViewNavigatorEvent;
+		
+		protected var popup:MyPopupComponent;
+		
+		[Bindable]
+		protected var actions:ArrayCollection;
+		
+		[Embed("assets/sms.png")]
+		private var smsIcon:Class;
+		
+		[Embed("assets/phone.png")]
+		private var phoneIcon:Class;
+		
+		[Embed("assets/icon-phone.png")]
+		private var sipIcon:Class;
+
+		[Embed("assets/mail.png")]
+		private var mailIcon:Class;
+		
+		[Embed("assets/fax.png")]
+		private var faxIcon:Class;
+		
+		private var longPressTimer:Timer = new Timer(1500,1);
+		private var listIndex:int;
+	
+		override public function set data(value:Object):void
+		{
+			super.data = value;
+			actions = new ArrayCollection();
+			
+			if (data.zongji)
+			{				
+				actions.addItem({type: "tel", name: "总机", 
+					details: data.zongji, icon:phoneIcon, enable:true});
+			}
+			
+			if (data.dating)
+			{				
+				actions.addItem({type: "tel1", name: "大厅", 
+					details: data.dating, icon:phoneIcon, enable:true});
+			}
+			
+			if (data.meeting1)
+			{				
+				actions.addItem({type: "tel1", name: "一楼会议室", 
+					details: data.meeting1, icon:phoneIcon, enable:true});
+			}
+			
+			if (data.meeting2)
+			{				
+				actions.addItem({type: "tel1", name: "二楼会议室", 
+					details: data.meeting2, icon:phoneIcon, enable:true});
+			}
+			
+			if (data.meeting5)
+			{				
+				actions.addItem({type: "tel1", name: "五楼会议室", 
+					details: data.meeting5, icon:phoneIcon, enable:true});
+			}
+			
+			if (data.fax)
+			{				
+				actions.addItem({type: "fax", name: "传真", 
+					details: data.fax, icon:faxIcon, enable:true});
+			}
+			
+			if (data.sipPhone)
+			{				
+				actions.addItem({type: "sip", name: "Sip Call", 
+					details: 'This feature is coming soon, so stay tuned!', icon:sipIcon, enable:false});
+			}
+			if (data.officePhone)
+			{
+				actions.addItem({type: "tel", name: "Call office", 
+					details: "60899886 - " + data.officePhone, icon:phoneIcon, enable:true});
+			}
+			if (data.cellPhone)
+			{
+				actions.addItem({type: "tel", name: "Call mobile", 
+					details: data.cellPhone, icon:phoneIcon, enable:true});
+				actions.addItem({type: "sms", name: "SMS", 
+					details: data.cellPhone, icon:smsIcon, enable:true});
+			}
+			if (data.email)
+			{
+				actions.addItem({type: "mailto", name: "Email", 
+					details: data.email, icon:mailIcon, enable:true});
+			}
+		}
+		
+		private function init():void 
+		{
+			enableClick();
+		}
+		
+		protected function list_changeHandler(event:MouseEvent):void
+		{
+			var action:Object = list.selectedItem;
+			var textToCopy:int = list.selectedIndex; 
+			
+			if (this.alpha == 1)
+			{
+				switch (action.type)
+				{
+					case "tel":
+						navigateToURL(new URLRequest("tel:"+action.details));
+						break;
+	
+					case "tel1":
+						navigateToURL(new URLRequest("tel:"+ '60899886 - ' + action.details));
+						break;
+					
+					case "sms":
+						navigateToURL(new URLRequest("sms:"+action.details));
+						break;
+					
+					case "mailto":
+						navigateToURL(new URLRequest("mailto:"+action.details));
+						break;
+				}
+				callLater(resetListSelection);
+			}
+		}
+		
+		private function startLongPressMouse(event:MouseEvent):void {   
+			startLongPressTimer();
+			list.addEventListener(MouseEvent.MOUSE_MOVE, endLongPressMouse);
+		}
+		
+		private function endLongPressMouse(event:MouseEvent):void {
+			stopLongPressTimer();
+			enableClick();
+			list.removeEventListener(MouseEvent.MOUSE_MOVE, endLongPressMouse);
+		}
+		
+		private function startLongPress(event:TouchEvent):void {
+			startLongPressTimer();
+			list.addEventListener(TouchEvent.TOUCH_MOVE, endLongPress);
+		}
+		
+		private function endLongPress(event:TouchEvent):void {
+			stopLongPressTimer();
+			enableClick();
+			list.removeEventListener(TouchEvent.TOUCH_MOVE, endLongPress);
+		}
+		
+		private function startLongPressTimer():void {
+			longPressTimer.start();
+			longPressTimer.addEventListener(TimerEvent.TIMER_COMPLETE, longPressHandler);
+		}
+		
+		protected function disableClick():void {
+			trace("disable click");
+			list.removeEventListener(MouseEvent.CLICK, list_changeHandler);
+			//list.removeEventListener(IndexChangeEvent.CHANGE, list_changeHandler);
+		}
+		
+		public function enableClick():void {
+			list.callLater(list.addEventListener, [MouseEvent.CLICK, list_changeHandler]);
+			//list.callLater(list.addEventListener, [IndexChangeEvent.CHANGE, list_changeHandler]);
+		}
+		
+		public function resetListSelection():void {
+			list.selectedIndex = -1;
+			list.validateDisplayList();
+		}
+		
+		private function stopLongPressTimer():void{
+			longPressTimer.stop();
+			longPressTimer.reset()
+		}
+		
+		public function longPressHandler(event:TimerEvent):void{
+			disableClick();
+			stopLongPressTimer();		
+			
+			var textToCopy:String;
+			try 
+			{
+				list.selectedIndex = listIndex;
+				textToCopy = list.selectedItem.details;
+			} catch(e:Error){      
+				textToCopy = '';      
+			}      
+			Clipboard.generalClipboard.clear(); 
+			Clipboard.generalClipboard.setData(ClipboardFormats.TEXT_FORMAT, textToCopy, false);
+			
+			popup = new MyPopupComponent();
+			popup.addEventListener(PopUpEvent.CLOSE, popupClosedHandler);
+			popup.open(this, true);
+			this.alpha = 0.5;
+			//PopUpManager.centerPopUp(popup);
+			//popup.x=FlexGlobals.topLevelApplication.stage.stageWidth/2-popup.width/2;
+			popup.y=FlexGlobals.topLevelApplication.stage.stageHeight/5;
+		}
+		
+		public function popupClosedHandler(event:PopUpEvent):void{			
+			this.alpha = 1;
+			callLater(resetListSelection);
+		}
+
+	]]>
+</fx:Script>
+	<s:viewMenuItems>
+		<s:ViewMenuItem label="About" click="(new AboutMsg()).open(this, false);"/>
+		<s:ViewMenuItem label="Mail to author" click="navigateToURL(new URLRequest('mailto:dalang1987@gmail.com'));"/>
+		<s:ViewMenuItem label="Exit" click="NativeApplication.nativeApplication.exit();"/>
+	</s:viewMenuItems>
+	
+	<s:navigationContent>
+		<s:Button icon="@Embed('assets/home.png')"
+				  click="if (this.alpha == 1) {navigator.popToFirstView();}"/>
+	</s:navigationContent>
+	
+	<s:HGroup verticalAlign="middle" gap="12">
+		
+		<s:Image source="assets/pics/{((data.picture != null) &amp;&amp; (data.picture.length > 0))? data.picture.toLowerCase(): 'no_avatar_m.jpg'}"/>
+		
+		<s:VGroup>
+			<s:Label text="{data.name.substring(0, 8)}"/>
+			<s:Label text="{data.name.substring(8)}" includeInLayout='{data.name.length > 8}'  />			
+			<s:Label text="{data.title}"/>
+			<s:Label text="{data.department}"/>
+			<!---
+			<s:Label text="{data.city}"/>
+			-->
+		</s:VGroup>
+	</s:HGroup>
+	
+	<s:List id="list" dataProvider="{actions}" 
+			top="160" left="0" right="0" bottom="0" itemRollOver="listIndex = event.itemIndex;"
+			touchBegin="startLongPress(event)" touchEnd="endLongPress(event)"
+			mouseDown="startLongPressMouse(event)" mouseUp="endLongPressMouse(event)">
+		<s:itemRenderer>
+			<fx:Component>
+				<s:IconItemRenderer
+					paddingTop="8" paddingBottom="8" verticalGap="6"
+					labelField="name" 
+					messageField="details" 
+					decorator="{data.icon}" alpha="{data.enable?1:0.5}"/>
+			</fx:Component>
+		</s:itemRenderer>
+	</s:List>	
+</s:View>
